@@ -8,7 +8,10 @@
 #pragma warning(suppress : 4996)
 
 #define M_PI       3.14159265358979323846
+// robot constants
 #define L 254.0 
+#define GEARRATIO 72
+#define PULSESPERDEG 11.11
 
 // Function Declarations
 void homeRobot();
@@ -21,10 +24,10 @@ void moveRobot();
 double degToRad(double angDeg);
 double radToDeg(double angRad);
 
+double pulsesToDeg(long pCount);
+
 // Global Variables
-int encoderRes = 1000;
-int gearRatio = 72;
-double pulsesPerDeg = 11.11;
+
 // This function is executed every 100 ms
 void update(void) {
 	// Update the Encoder Counts
@@ -35,7 +38,6 @@ void update(void) {
 
 int main() {
 	// Menu Variables
-	// test commit
 	int input;		// Menu Select Variable
 	bool quit = 0;		// Exit Flag
 
@@ -101,21 +103,21 @@ void displayPosition() {
 
 	// Initialize Variables
 	double theta1, theta2, x, y;
-	long encoderJ1[2], encoderJ2[2];
-	vitalEncoderRead(1, &encoderJ1[1]); // read the encoder for joint one
-	vitalEncoderRead(2, &encoderJ2[1]);
+	long encoderCount[4];
+	vitalEncoderRead(1, &encoderCount[1]); // read the encoder for joint one
+	vitalEncoderRead(2, &encoderCount[2]);
 	// Update the Position
 	while (!_kbhit()) {
 		// Calculate Degrees
-		theta1 = encoderJ1[1] / (pulsesPerDeg * gearRatio);  // calculate thetas
-		theta2 = encoderJ2[1] / (pulsesPerDeg * gearRatio);
+		theta1 = pulsesToDeg(encoderCount[1]);  // calculate thetas
+		theta2 = pulsesToDeg(encoderCount[2]);  // calculate thetas
 		degToRad(theta1); // make 'em rads
 		degToRad(theta2);
 		// Calculate Coordinates
 		x = L * (cos(theta1) + cos(theta2));
 		y = L * (sin(theta1) + sin(theta2));
 		// Display Results
-		printf(" x = &lf \n y = %lf \n theta1 = %lf \n theta2 = %lf \n encoder1 = %lf \n encoder2 = %lf \n"), x, y, radToDeg(theta1), radToDeg(theta2), encoderJ1[1], encoderJ2[1];
+		printf_s(" x = %.2lf \n y = %.2lf \n theta1 = %.2lf \n theta2 = %.2lf \n encoder1 = %d \n encoder2 = %d \n", x, y, radToDeg(theta1), radToDeg(theta2), encoderCount[1], encoderCount[2]);
 		Sleep(100);
 		system("CLS");
 	}
@@ -163,6 +165,10 @@ void moveRobot() {
 
 	// Turn Motors Based on Error
 
+}
+
+double pulsesToDeg(long pCount) {
+	return pCount / (GEARRATIO * PULSESPERDEG);
 }
 
 //---------------------------------------------------------------------------------------
