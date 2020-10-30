@@ -18,6 +18,9 @@ void moveTCP();
 void limpUnlimp();
 void moveRobot();
 
+double degToRad(double angDeg);
+double radToDeg(double angRad);
+
 // Global Variables
 int encoderRes = 1000;
 int gearRatio = 72;
@@ -104,15 +107,15 @@ void displayPosition() {
 	// Update the Position
 	while (!_kbhit()) {
 		// Calculate Degrees
-		theta1 = encoderJ1[1] / (encoderRes * gearRatio);  // calculate thetas
-		theta2 = encoderJ2[1] / (encoderRes * gearRatio);
-		DegToRad(theta1); // make 'em rads
-		DegToRad(theta2);
+		theta1 = encoderJ1[1] / (pulsesPerDeg * gearRatio);  // calculate thetas
+		theta2 = encoderJ2[1] / (pulsesPerDeg * gearRatio);
+		degToRad(theta1); // make 'em rads
+		degToRad(theta2);
 		// Calculate Coordinates
 		x = L * (cos(theta1) + cos(theta2));
 		y = L * (sin(theta1) + sin(theta2));
 		// Display Results
-		printf(" x = &lf \n y = %lf \n theta1 = %lf \n theta2 = %lf \n encoder1 = %lf \n encoder2 = %lf \n"), x, y, RadToDeg(theta1), RadToDeg(theta2), encoderJ1[1], encoderJ2[1];
+		printf(" x = &lf \n y = %lf \n theta1 = %lf \n theta2 = %lf \n encoder1 = %lf \n encoder2 = %lf \n"), x, y, radToDeg(theta1), radToDeg(theta2), encoderJ1[1], encoderJ2[1];
 		Sleep(100);
 		system("CLS");
 	}
@@ -164,14 +167,12 @@ void moveRobot() {
 
 //---------------------------------------------------------------------------------------
 // Returns angle in radians from input angle in degrees
-double DegToRad(double angDeg)
-{
+double degToRad(double angDeg) {
 	return (M_PI / 180.0) * angDeg;
 }
 
 //---------------------------------------------------------------------------------------
 // Returns angle in radians from input angle in degrees
-double RadToDeg(double angRad)
-{
+double radToDeg(double angRad) {
 	return (180.0 / M_PI) * angRad;
 }
