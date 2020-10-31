@@ -23,15 +23,24 @@ void moveRobot();
 
 double degToRad(double angDeg);
 double radToDeg(double angRad);
-
 double pulsesToDeg(long pCount);
+double roundToThousandths(double n);
+
+typedef struct SCARA_POS {
+	double x, y, theta1, theta2; // TCP coordinate and joint variables
+	int armSol;  // right or left arm solution
+}SCARA_POS;
 
 // Global Variables
+long encoderCount[2];
+SCARA_POS scaraState;
+SCARA_POS targetPos;
 
 // This function is executed every 100 ms
 void update(void) {
 	// Update the Encoder Counts
-
+	vitalEncoderRead(1, &encoderCount[1]); // read the encoder for joint one
+	vitalEncoderRead(2, &encoderCount[2]);
 	// Execute the Closed Loop Control
 	moveRobot();
 }
@@ -100,24 +109,18 @@ void homeRobot() {
 
 void displayPosition() {
 	printf("Display the Position");
-
-	// Initialize Variables
-	double theta1, theta2, x, y;
-	long encoderCount[4];
-	vitalEncoderRead(1, &encoderCount[1]); // read the encoder for joint one
-	vitalEncoderRead(2, &encoderCount[2]);
 	// Update the Position
 	while (!_kbhit()) {
 		// Calculate Degrees
-		theta1 = pulsesToDeg(encoderCount[1]);  // calculate thetas
-		theta2 = pulsesToDeg(encoderCount[2]);  // calculate thetas
-		degToRad(theta1); // make 'em rads
-		degToRad(theta2);
+		scaraState.theta1 = pulsesToDeg(encoderCount[1]);  // calculate thetas
+		scaraState.theta2 = pulsesToDeg(encoderCount[2]);  // calculate thetas
+		degToRad(scaraState.theta1); // make 'em rads
+		degToRad(scaraState.theta2);
 		// Calculate Coordinates
-		x = L * (cos(theta1) + cos(theta2));
-		y = L * (sin(theta1) + sin(theta2));
+		scaraState.x = L * (cos(scaraState.theta1) + cos(scaraState.theta2));
+		scaraState.y = L * (sin(scaraState.theta1) + sin(scaraState.theta2));
 		// Display Results
-		printf_s(" x = %.2lf \n y = %.2lf \n theta1 = %.2lf \n theta2 = %.2lf \n encoder1 = %d \n encoder2 = %d \n", x, y, radToDeg(theta1), radToDeg(theta2), encoderCount[1], encoderCount[2]);
+		printf_s(" x = %.2lf \n y = %.2lf \n theta1 = %.2lf \n theta2 = %.2lf \n encoder1 = %d \n encoder2 = %d \n", scaraState.x, scaraState.y, radToDeg(scaraState.theta1), radToDeg(scaraState.theta2), encoderCount[1], encoderCount[2]);
 		Sleep(100);
 		system("CLS");
 	}
@@ -126,24 +129,55 @@ void displayPosition() {
 void moveJoint() {
 	printf("Move a Joint (J1 J2):");
 	// Initialize Variables
-
+	double arg1, arg2;
+	int option;
 	// Read User Input
-
+	printf("Select a input type:\n  1) Angles\n  2) Encoder counts\n");
+	scanf("%d", &option);
+	printf("Enter J1 arg:\n");
+	scanf("%lf", &arg1);
+	printf("Enter J2 arg:\n");
+	scanf("%lf", &arg2);
 	// Update Target Position for Closed-Loop Control
+	if (option == 1) {
+		targetPos.theta1 = arg1;
+		targetPos.theta2 = arg2;
+	}							 // lets keep it in degrees in both cases
+	else if (option == 2) {
+		targetPos.theta1 = pulsesToDeg(arg1);
+		targetPos.theta2 = pulsesToDeg(arg2);
+	}
+	else {
+		printf("error");
+	}
 
 	// Unlimp
+
+	// not sure yet
 }
 
 void moveTCP() {
 	printf("Move TCP to Position (X Y):");
 	// Initialize Variables
-
+	double lenght, alpha, beta, theta2den, theta2num;
 	// Read User Input
-
+	printf("Enter X: ");
+	scanf("%lf", &targetPos.x);
+	printf("\nEnter Y: ");									// saving args to global var targetPos
+	scanf("%lf", &targetPos.y);
+	printf("\nEnter armSol: (0 is Right Arm, 1 is Left Arm");
+	scanf("%d", &targetPos.armSol);
 	// Inverse Kinematics
-
+	alpha = atan2(targetPos.y, targetPos.x);
+	lenght = sqrt(pow(targetPos.x, 2) + pow(targetPos.y, 2));
+	lenght = roundToThousandths(lenght);
+	beta = acos((pow(lenght, 2)) / (2 * L * lenght));  // if L1 == L2 then L1^2 - L2^2 = 0, denominator then only lenght^2
 	// Update Target Position for Closed-Loop Control
-
+	// if armsol == right arm, beta - alpha, else, beta + alpha
+	targetPos.theta1 = (targetPos.armSol == 0) ? targetPos.theta1 = beta - alpha : beta + alpha;
+	theta2num = targetPos.y - (L * sin(targetPos.theta1));		// numerator calc
+	theta2den = targetPos.x - (L * cos(targetPos.theta1));		// denominator calc
+	targetPos.theta2 = atan2(theta2num, theta2den);
 	// Unlimp
 }
 
@@ -158,17 +192,27 @@ void limpUnlimp() {
 
 void moveRobot() {
 	// Initialize Variables
-
+	double theta1Error, theta2Error;
 	// Calculate the Current Position
-
+	scaraState.theta1 = pulsesToDeg(encoderCount[1]);  // calculate current thetas
+	scaraState.theta2 = pulsesToDeg(encoderCount[2]);
 	// Calculate Error
-
+	theta1Error = scaraState.theta1 - targetPos.theta1;
+	theta2Error = scaraState.theta2 - targetPos.theta2;
 	// Turn Motors Based on Error
 
+	/* if scaraState theta1 < targetPos theta1
+			turn motor 1 with pos voltage and vice versa (?)
+			still unsure how to do this and make it
+			work with the update function		*/
 }
 
 double pulsesToDeg(long pCount) {
 	return pCount / (GEARRATIO * PULSESPERDEG);
+}
+
+double degToPulses(long desDeg) {
+	return GEARRATIO * PULSESPERDEG * desDeg;
 }
 
 //---------------------------------------------------------------------------------------
@@ -181,4 +225,20 @@ double degToRad(double angDeg) {
 // Returns angle in radians from input angle in degrees
 double radToDeg(double angRad) {
 	return (180.0 / M_PI) * angRad;
+}
+/************************************************************************************
+ * Function: roundToThousandths
+ * - rounds a float to the third decimal place
+ *
+ * Arguments:
+ * n - double
+ *
+ * return: rounded double
+ *
+ * Author: Marcus Kuhn
+ * Date: 29/04/2020
+ * Modified: 29/04/2020
+ ***********************************************************************************/
+double roundToThousandths(double n) {
+	return floor(n * 10000 + 0.5) / 10000;
 }
