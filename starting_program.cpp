@@ -40,8 +40,8 @@ bool isLimp;
 // This function is executed every 100 ms
 void update(void) {
 	// Update the Encoder Counts
-	vitalEncoderRead(1, &encoderCount[1]); // read the encoder for joint one
-	vitalEncoderRead(2, &encoderCount[2]);
+	vitalEncoderRead(1, &encoderCount[1]);	//read the encoder for joint one
+	vitalEncoderRead(2, &encoderCount[2]);	//read encoder for joint two
 	// Execute the Closed Loop Control
 	moveRobot();
 }
@@ -115,11 +115,12 @@ void displayPosition() {
 		// Calculate Degrees
 		scaraState.theta1 = pulsesToDeg(encoderCount[1]);  // calculate thetas
 		scaraState.theta2 = pulsesToDeg(encoderCount[2]);  // calculate thetas
+		//scaraState.theta2 = scaraState.theta1 + pulsesToDeg(encoderCount[2]);    //I think this is how theta 2--relative to x-axis--is calculated.
 		degToRad(scaraState.theta1); // make 'em rads
 		degToRad(scaraState.theta2);
 		// Calculate Coordinates
-		scaraState.x = L * (cos(scaraState.theta1) + cos(scaraState.theta2));
-		scaraState.y = L * (sin(scaraState.theta1) + sin(scaraState.theta2));
+		scaraState.x = L * (cos(scaraState.theta1) + cos(scaraState.theta2));	//humerus x component plus forearm x component
+		scaraState.y = L * (sin(scaraState.theta1) + sin(scaraState.theta2));	//humerus y component plus forearm y component
 		// Display Results
 		printf_s(" x = %.2lf \n y = %.2lf \n theta1 = %.2lf \n theta2 = %.2lf \n encoder1 = %d \n encoder2 = %d \n", scaraState.x, scaraState.y, radToDeg(scaraState.theta1), radToDeg(scaraState.theta2), encoderCount[1], encoderCount[2]);
 		Sleep(100);
@@ -142,11 +143,13 @@ void moveJoint() {
 	// Update Target Position for Closed-Loop Control
 	if (option == 1) {
 		targetPos.theta1 = arg1;
-		targetPos.theta2 = arg2;
+		targetPos.theta2 = arg2;	
+		//targetPos.theta2 = arg2 - targetPos.theta1;	//I think this is how it'll work, assuming the user is inputting rel-x angle
 	}							 // lets keep it in degrees in both cases
 	else if (option == 2) {
 		targetPos.theta1 = pulsesToDeg(arg1);
 		targetPos.theta2 = pulsesToDeg(arg2);
+		//targetPos.theta2 = pulsesToDeg(arg2) - targetPos.theta1;	//samesies
 	}
 	else {
 		printf("error");
@@ -224,6 +227,7 @@ void moveRobot() {
 	// Calculate the Current Position
 	scaraState.theta1 = pulsesToDeg(encoderCount[1]);  // calculate current thetas
 	scaraState.theta2 = pulsesToDeg(encoderCount[2]); 
+	//scaraState.theta2 = scaraState.theta1 + pulsesToDeg(encoderCount[2]);    //I think this is how theta 2--relative to x-axis--is calculated.
 	// Calculate Error
 	theta1Error = scaraState.theta1 - targetPos.theta1;
 	theta2Error = scaraState.theta2 - targetPos.theta2;
