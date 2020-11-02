@@ -35,6 +35,7 @@ typedef struct SCARA_POS {
 long encoderCount[2];
 SCARA_POS scaraState;
 SCARA_POS targetPos;
+bool isLimp;
 
 // This function is executed every 100 ms
 void update(void) {
@@ -182,12 +183,39 @@ void moveTCP() {
 }
 
 void limpUnlimp() {
-	printf("Limp[L] or Unlimp [U] the Robot");
-	// Initialize Variables
+	char limpSelect = 'd';
+	while ((limpSelect != 'U') & (limpSelect != 'L') & (limpSelect != 'Q') & (limpSelect != 'u') & (limpSelect != 'l') & (limpSelect != 'q'))
+	{
+		printf("Limp[L] or Unlimp [U] the Robot, or Quit [Q]\n");
+		scanf_s(" %c", &limpSelect);
+		if ((limpSelect == 'U') || (limpSelect == 'u'))
+		{
+			isLimp = false;
+			printf("Arm activated. Press enter.\n");
+		}
+		else if ((limpSelect == 'L') || (limpSelect == 'l'))
+		{
+			joint1volt = 0; //vitalDacWrite(0, 0.0);
 
-	// Read User Input
+			joint2volt = 0; //vitalDacWrite(1, 0.0);
 
-	// Limp or Unlimp the Robot
+			isLimp = true;
+
+			printf("Arm limped. Press enter.\n");
+		}
+		else if ((limpSelect == 'Q') || (limpSelect == 'q'))
+		{
+			printf("Limp/Unlimp Status Unchanged. Returning to main menu.\n");
+		}
+		else
+		{
+			printf("Invalid Selection.\n");
+		}
+
+	}
+	getchar();
+	getchar();
+	return;
 }
 
 void moveRobot() {
@@ -195,11 +223,36 @@ void moveRobot() {
 	double theta1Error, theta2Error;
 	// Calculate the Current Position
 	scaraState.theta1 = pulsesToDeg(encoderCount[1]);  // calculate current thetas
-	scaraState.theta2 = pulsesToDeg(encoderCount[2]);
+	scaraState.theta2 = pulsesToDeg(encoderCount[2]); 
 	// Calculate Error
 	theta1Error = scaraState.theta1 - targetPos.theta1;
 	theta2Error = scaraState.theta2 - targetPos.theta2;
 	// Turn Motors Based on Error
+
+	if (theta1Error < 0) {
+		vitalDacWrite(0, 3.0);
+		if (fabs(theta1Error) < 20) {
+			vitalDacWrite(0, 0);
+		}
+	}
+	if (theta1Error > 0) {
+		vitalDacWrite(0, -3.0);
+		if (fabs(theta1Error) < 20) {
+			vitalDacWrite(0, 0);
+		}
+	}
+	if (theta2Error < 0) {
+		vitalDacWrite(0, 3.0);
+		if (fabs(theta1Error) < 20) {
+			vitalDacWrite(0, 0);
+		}
+	}
+	if (theta1Error > 0) {
+		vitalDacWrite(0, -3.0);
+		if (fabs(theta1Error) < 20) {
+			vitalDacWrite(0, 0);
+		}
+	}
 
 	/* if scaraState theta1 < targetPos theta1
 			turn motor 1 with pos voltage and vice versa (?)
